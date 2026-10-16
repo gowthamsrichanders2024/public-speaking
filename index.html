@@ -1,0 +1,414 @@
+<title>Public Speaking Quiz Bank</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: a podium-style header with a waveform, a grid of ten week cards, then a one-question-at-a-time quiz view with a result review. */
+:root{
+  --bg:#EDF0F4; --surface:#FFFFFF; --ink:#0F1B2A; --muted:#566475; --line:#D3DAE3;
+  --accent:#1B4DDB; --accent-ink:#FFFFFF; --accent-soft:#E4EBFC;
+  --good:#1B7A4B; --good-bg:#E1F2E8; --bad:#B3261E; --bad-bg:#FBE6E4;
+  --f-display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --f-body:"Instrument Sans","Segoe UI",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0B131E; --surface:#121D2C; --ink:#E7ECF3; --muted:#92A0B2; --line:#243348;
+  --accent:#86A6FF; --accent-ink:#0B131E; --accent-soft:#1A2A4A;
+  --good:#5ED39B; --good-bg:#10301F; --bad:#FF8F86; --bad-bg:#3A1816; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0B131E; --surface:#121D2C; --ink:#E7ECF3; --muted:#92A0B2; --line:#243348;
+  --accent:#86A6FF; --accent-ink:#0B131E; --accent-soft:#1A2A4A;
+  --good:#5ED39B; --good-bg:#10301F; --bad:#FF8F86; --bad-bg:#3A1816; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;
+  padding-block:0 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:960px;margin:0 auto}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance;line-height:1.1}
+
+/* header */
+.top{padding-block:40px 28px;display:grid;gap:20px}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.top h1{font-size:clamp(2.2rem,6vw,3.8rem);font-weight:800;letter-spacing:-.02em}
+.top p{margin:0;color:var(--muted);max-width:56ch}
+.wave{display:flex;align-items:center;gap:3px;height:44px;overflow:hidden}
+.wave i{flex:1 1 0;min-width:2px;max-width:7px;background:var(--accent);border-radius:2px;opacity:.85}
+.actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{border:1.5px solid var(--ink);background:transparent;padding:10px 18px;border-radius:8px;font-weight:600}
+.btn:hover{background:var(--ink);color:var(--bg)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08);background:var(--accent);color:var(--accent-ink)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.note{font-size:14px;color:var(--muted);border-left:3px solid var(--line);padding-left:12px;max-width:70ch}
+
+/* week grid */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+.week{display:flex;flex-direction:column;gap:10px;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
+.week:hover{border-color:var(--accent);transform:translateY(-2px)}
+.week{transition:transform .15s,border-color .15s}
+.week .n{font-family:var(--f-display);font-weight:800;font-size:2.6rem;line-height:1;letter-spacing:-.03em}
+.week .lbl{font-family:var(--f-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.week .topic{font-weight:600;line-height:1.3}
+.week .meta{display:flex;justify-content:space-between;align-items:center;margin-top:auto;font-size:13px;color:var(--muted);gap:8px}
+.chip{font-family:var(--f-mono);font-size:12px;padding:3px 8px;border-radius:99px;background:var(--accent-soft);color:var(--accent);white-space:nowrap}
+.chip.done{background:var(--good-bg);color:var(--good)}
+
+/* quiz */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);padding-block:14px 12px;z-index:5;display:grid;gap:10px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:10}
+.barrow{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.back{background:none;border:0;padding:6px 0;font-weight:600;color:var(--accent)}
+.count{font-family:var(--f-mono);font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.segs{display:flex;gap:3px}
+.segs i{flex:1;height:6px;border-radius:3px;background:var(--line)}
+.segs i.cur{background:var(--accent)}
+.segs i.ok{background:var(--good)}
+.segs i.no{background:var(--bad)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:clamp(18px,4vw,32px);margin-top:10px;display:grid;gap:22px}
+.qtype{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.qtype span{font-family:var(--f-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.q{font-family:var(--f-display);font-weight:700;font-size:clamp(1.25rem,3.2vw,1.7rem);line-height:1.25;text-wrap:pretty;overflow-wrap:anywhere}
+.blank{display:inline-block;min-width:3.5ch;border-bottom:3px solid var(--accent);margin-inline:.15em;vertical-align:baseline}
+.blank.filled{border-bottom-color:currentColor;padding-inline:.25em}
+.opts{display:grid;gap:10px}
+.opts.two{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+.opt{display:flex;gap:14px;align-items:center;text-align:left;background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:13px 16px;min-width:0;overflow-wrap:anywhere}
+.opt:hover:not([disabled]){border-color:var(--accent)}
+.opt .k{flex:none;width:28px;height:28px;border-radius:6px;border:1.5px solid var(--line);display:grid;place-items:center;font-family:var(--f-mono);font-size:13px;color:var(--muted)}
+.opt.right{background:var(--good-bg);border-color:var(--good)}
+.opt.right .k{background:var(--good);border-color:var(--good);color:var(--surface)}
+.opt.wrong{background:var(--bad-bg);border-color:var(--bad)}
+.opt.wrong .k{background:var(--bad);border-color:var(--bad);color:var(--surface)}
+.opt[disabled]{cursor:default}
+.fb{border-radius:10px;padding:14px 16px;display:grid;gap:4px}
+.fb.ok{background:var(--good-bg);color:var(--good)}
+.fb.no{background:var(--bad-bg);color:var(--bad)}
+.fb strong{font-family:var(--f-display);font-size:1.1rem}
+.fb small{color:var(--muted);font-size:13px}
+.foot{display:flex;justify-content:flex-end}
+
+/* result */
+.score{display:flex;flex-wrap:wrap;gap:18px 32px;align-items:flex-end}
+.big{font-family:var(--f-display);font-weight:800;font-size:clamp(3.4rem,12vw,6rem);line-height:.9;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.big small{font-size:.4em;color:var(--muted);font-weight:600;letter-spacing:0}
+.review{display:grid;gap:0;margin:0;padding:0;list-style:none}
+.review li{display:grid;grid-template-columns:28px 1fr;gap:12px;padding:14px 0;border-top:1px solid var(--line)}
+.mark{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700;color:var(--surface)}
+.mark.ok{background:var(--good)} .mark.no{background:var(--bad)}
+.review p{margin:0;overflow-wrap:anywhere}
+.review .a{font-size:14px;color:var(--muted);margin-top:2px}
+.review .a b{color:var(--ink);font-weight:600}
+.wk{font-family:var(--f-mono);font-size:11px;color:var(--accent)}
+@media (prefers-reduced-motion:reduce){.week{transition:none}.week:hover{transform:none}}
+</style>
+
+<div class="wrap" id="app"></div>
+
+<script>
+const TF = ["True","False"];
+const Q = (t,q,o,a,key) => ({t,q,o,a:[].concat(a),key:!!key});
+const M = (q,o,a,key) => Q("mcq",q,o,a,key);
+const F = (q,o,a,key) => Q("fill",q,o,a,key);
+const T = (q,a) => Q("tf",q,TF,a,true);
+
+const WEEKS = [
+{n:1,topic:"Rhetoric and the basics",qs:[
+ M("“Speech is power: speech is to persuade, to convert, to compel” — this quote belongs to:",["Abraham Lincoln","Ralph Waldo Emerson","Winston Churchill","Aristotle"],1),
+ M("Aristotle was a famous scholar and author of Rhetoric. He belonged to:",["Rome","Egypt","Greece","America"],2),
+ M("Public Speaking is:",["A rare skill used only in formal settings","An activity limited to politicians and leaders","Not an everyday routine for most people","A part of everyday personal and professional life"],3),
+ M("Lack of clarity in chosen words is called:",["Ambiguity","Articulation","Euphemism","Verbosity"],0),
+ M("Deliberative Rhetoric is mainly used to:",["Judge actions of the past","Praise or blame a person","Discuss and decide future actions","Analyse literary texts"],2),
+ F("Fear of ______ is an interpersonal barrier.",["motivation","criticism","decision","deliberation"],1),
+ F("According to ______ Dictionary, Public Speaking is “the act or process of making speeches in public” or “the art of effective oral communication with the audience”.",["Merriam Webster","Oxford","Cambridge","Blackwell"],0),
+ F("“As I Walked Out One Evening” is a poem by ______.",["John Donne","Stuart Mill","Wilfred Owen","W.H. Auden"],3),
+ F("Hearing is a ______ process.",["psychological","physiological","emotional","factual"],1),
+ F("Ethics is commonly interchanged with ______.",["seniority","obesity","rhetoric","morality"],3)]},
+{n:2,topic:"Audience analysis and structure",qs:[
+ M("Which of the following is NOT listed as a factor to analyse about an audience?",["Size of the audience","Demographics (age, sex, background)","Audience members' favorite foods","Setting and seating arrangement"],2,1),
+ M("The audiences are those that seek entertainment and connection ______ through communication.",["Emotive","Directive","Reflective","Supportive"],0,1),
+ M("The closing advice “Know yourself and know your audience” implies:",["Only focus on audience preferences and ignore your strengths","Self-awareness combined with audience knowledge leads to more effective communication","If you know yourself, audience analysis is unnecessary","Always prioritize entertainers over informative content"],1,1),
+ M("Monroe’s motivated sequence begins with the ______ step.",["Call to action","Grab the attention","Provide visual solutions","Define the conclusion"],1,1),
+ M("The ______ as a technological tool allows newsreaders to appear spontaneous while actually being aided.",["Presentation timer","Teleprompter","Interactive whiteboard","Podcast platform"],1,1),
+ Q("tf","Relevance theory was first proposed by H. P. Grice.",TF,1,1),
+ M("According to Sperber and Wilson’s Relevance Theory, communication is successful when a speaker minimizes the audience's ______.",["Cognitive effect","Feedback loop","Processing effort","Vocal variety"],2,1),
+ Q("tf","Eloquence is a perennially valued skill that can help individuals survive crises and gain social recognition.",TF,0,1),
+ Q("tf","Public speaking cannot contribute to professional advancement or leadership opportunities.",TF,1,1),
+ Q("tf","In public speaking, the “Chronological Pattern” organizes the subtopics and main points based on physical space, geographical direction, or physical layout from left to right.",TF,1,1)]},
+{n:3,topic:"Anxiety and intercultural skill",qs:[
+ F("The fear of speaking before an audience is commonly known as ______.",["glossophobia","agoraphobia"],0),
+ F("According to Vygotsky, ______ plays a significant role in shaping human understanding of reality.",["language","genetics"],0),
+ F("Goleman’s Emotional Competence Framework broadly includes personal and ______ competencies.",["psychological","social"],1),
+ F("Cultures that rely heavily on implicit messages and non-verbal cues are called ______ cultures.",["high-context","low-context"],0),
+ F("The hormone associated with the body’s stress response during speech anxiety is ______.",["epinephrine","adrenaline"],[0,1],1),
+ M("Which of the following is NOT a component of anxiety?",["Cognitive component","Somatic component","Behavioural component","Linguistic component"],3),
+ M("Deardorff's model of intercultural competence consists of how many elements?",["Three","Four","Five","Six"],2),
+ M("According to Mulac and Sherman, which of the following is among the elements of speech fright?",["Dysfluency","Adaptation","Persuasion","Observation"],0),
+ M("Intercultural communication, according to Martin and Nakayama, is best described as:",["A one-way transfer of information","An interactive experience between different cultures","A method for cultural standardization","A process of eliminating cultural differences"],1),
+ M("Which of the following theorists is associated with the concept of Cultural Intelligence?",["Lev Vygotsky","Geert Hofstede","Christopher Earley and Soon Ang","Daniel Goleman"],2)]},
+{n:4,topic:"Persuasion, drama and teaching",qs:[
+ F("______ is the currency of persuasion.",["Agitation","Affection","Attention","Falsification"],2),
+ F("______ is a way to grab attention and refresh the audience.",["Divulsion","Digression","Disgrace","Diabolical"],1),
+ F("______ have always been a site of persuasion.",["Stages","Solitude","Annoyance","Aggression"],0),
+ F("______ criticism is a component of classroom teaching-learning process.",["Healthy","Harsh","Heroic","Hermeneutic"],0),
+ F("John Dewey was an ______ educator and philosopher.",["Austrian","Belgian","British","American"],3),
+ M("Digression is employed by the speaker for ______.",["surprise effect","nuisance","continuous repetition","jargon usage"],0),
+ M("Which among the following options is not a type of dramatic speech?",["Soliloquy","Aside","Silence","Monologue"],2),
+ M("Dramatic Monologue has been used by:",["Toru Dutt","Lord Byron","William Shakespeare","Robert Browning"],3),
+ M("The basic principle of the classroom comprises ______ and democracy.",["equity","equality","quality","quantity"],1),
+ M("Teaching has to be ______.",["provocational","unidirectional","authoritative","participatory"],3)]},
+{n:5,topic:"Nonverbal cues and personal space",qs:[
+ T("Expressiveness, clarity, interaction, inclusiveness, and empathy are described as fundamental characteristics of effective lecturing.",0),
+ T("Freud is quoted as arguing that a person can keep all secrets through control of body language.",1),
+ T("Edward T. Hall coined the term proxemics and discussed it in his book The Hidden Dimension.",0),
+ F("Violating someone's space (territory) can most likely trigger ______.",["Increased comprehension","Flight or fight response","Anxiety","Anger"],1),
+ F("The term Kinesics was first introduced in the year ______.",["1956","1952","1953","1950"],1),
+ F("Dr. Desmond Morris describes the ______ gesture as an unconscious sign that a speaker might be lying or hiding something.",["hand-to-face or mouth-guard","leg scratching","sweating","eye-twitching"],0),
+ M("Which of the following is NOT one of the classifications of time discussed in the lecture?",["Social time","Psychological time","Technological time","Biological time"],2),
+ M("The lecturer cites Sachs to claim that touch is:",["A modern addition to communication","The foundation for communication with the world","Less important than sight and hearing","Only relevant in intimate relationships"],1),
+ M("What term does Wright introduce to describe regimentation of people by timekeeping, and what warning does the lecturer give about it?",["Chronotopia — that it leads to creative freedom","Chronarchy — that humans should use time, not be ruled by it","Chronometer — that clocks are unreliable","Chronology — that history dictates punctuality"],1),
+ M("What distance range did the lecture give for the intimate zone (approximate)?",["12 to 25 feet","4 to 12 feet","1.5 to 0.45 meters (approx.)","6 to 18 inches"],3)]},
+{n:6,topic:"Conversation, voice and negotiation",qs:[
+ T("Deductive reasoning proceeds from a general principle to a specific conclusion.",0),
+ T("Meta-communication refers exclusively to communication about language used in literary texts.",1),
+ T("Hoarseness occurs due to the passage of excess air through the vocal cords during articulation.",1),
+ T("Pitch is determined by the frequency of vocal cord vibrations.",0),
+ T("The International Phonetic Alphabet (IPA) is primarily used for grammatical analysis.",1),
+ M("Which of the following is a type of conversation identified by Adler?",["Political","Practical","Persuasive","Narrative"],1),
+ M("The study of graphemes and writing systems is known as:",["Graphology","Graphonomics","Graphemics","Phonemics"],2),
+ M("The negotiation outcome termed as BATNA refers to:",["Basic Agreement Through Negotiated Action","Best Alternative to a Negotiated Agreement","Balanced Approach Towards Negotiated Arrangements","Bilateral Agreement Through National Arbitration"],1),
+ M("Who is the author of the book Pragmatics of Human Communication?",["George Yule","Gregory Bateson","Noam Chomsky","Paul Watzlawick"],3),
+ M("In English intonation, which pair of tones is commonly observed?",["Linear and Circular","High and Low","Rising and Falling","Open and Closed"],2)]},
+{n:7,topic:"Elocution, tone and debate",qs:[
+ M("Elocution is derived from the Latin word",["electra","elocutio","election","escalation"],1),
+ M("The correct pronunciation of words is called",["Orthoepy","Orcoepy","Onacology","Osmalogy"],0),
+ M("According to Lukas, the three general criteria for judging speech are accuracy, ______ and audience’s interest.",["correspondence","control","chaos","clarity"],3),
+ M("Debate is a ______ communication.",["unilateral","bilateral","unidirectional","multidirectional"],1),
+ M("A positive tone while remembering the deceased is appreciated in ______ speeches.",["chaotic","fanatic","commemorative","superlative"],2),
+ T("Prefixes are generally accented.",1),
+ T("Falling tone signals the completion of a statement.",0),
+ T("Group discussion is a competitive platform.",1),
+ T("Compound Rising is used to convey a warning (antithesis to interrogation).",0),
+ T("Manner is the native unquarried rock, whereas matter is the tool to transform it into ‘a sculptured palace’.",1)]},
+{n:8,topic:"Interviews and humour",qs:[
+ T("Rod A. Martin’s four styles of humour mentioned are affiliative, self-enhancing, aggressive, and self-defeating.",0),
+ T("The primary purpose of an exit interview is to gather candid feedback from a departing employee to identify organisational flaws and improve company culture.",0),
+ T("Pre-interview research is highlighted as an absolute necessity to construct relevant, contextual answers and demonstrate genuine interest.",0),
+ T("The main goal of an unstructured interview is to scare the candidate and make them feel defensive.",1),
+ F("Group interviews usually look out for the ______ of the candidate.",["leadership skills","communication skills","presentation skills","dressing skills"],0),
+ F("The laddering framework is theoretically rooted in psychologist Kevin Olson’s ______ Chain Theory.",["End-to-end","Means-End","Top-to-bottom","right-to-left"],1),
+ F("The “Row Boat Technique” is a structural strategy candidates use to maintain balance, rhythm, and ______ when responding to a panel.",["Control","Contract","expand","relax"],0),
+ M("The lecturer warns of a hazard when companies use a “one size fits all” approach in structured interviews. What is that hazard?",["It becomes too costly","It may be redundant or may not work in certain situations","It increases interviewer bias","It prevents follow-up questions"],1),
+ M("The STAR method recommended for situational or behavioral interviews stands for:",["Situation, Task, Action, Result","Strategy, Tactics, Analysis, Review","Statement, Testimony, Argument, Response","Survey, Test, Assess, Report"],0),
+ M("Which nonverbal behaviors does the speaker explicitly recommend maintaining during an interview?",["Frequent fidgeting and changing positions","Avoiding eye contact to appear humble","Careful dress, confident bearing, handshake when appropriate, and steady eye contact","Using many fillers like “uh” and “um” to sound natural"],2)]},
+{n:9,topic:"Meetings, conferences, leadership",qs:[
+ F("The official written record of the proceedings and decisions of a meeting is known as the ______ of the meeting.",["minutes","agenda"],0),
+ F("The leadership style characterized by extensive delegation of authority is known as ______ leadership.",["transactional","laissez-faire"],1),
+ F("Questions that seek personal opinions, experiences, and subjective responses are called ______ questions.",["open-ended","closed-ended"],0),
+ F("The Situational Leadership Theory was developed by Paul Hersey and ______.",["Ken Blanchard","Marcus Kotter"],0),
+ F("A conference organized to resolve disputes and end hostilities between nations is called a ______ conference.",["settlement","peace"],1),
+ M("Which of the following is most closely associated with Impression Management in communicative interactions?",["Self-promotion and positive relationship building","Technical skill assessment only","Avoidance of self-description","Limiting communication with the interviewer"],0),
+ M("Which of the following documents is prepared before a meeting takes place?",["Minutes","Anticipation","Agenda","Memorandum"],2),
+ M("Which of the following is most closely associated with Transactional Leadership style?",["Shared vision","Rewards and punishments","Delegation without supervision","Participative decision-making"],1),
+ M("Virtual conferences are considered advantageous because they:",["Eliminate the need for technology","Overcome geographical barriers","Guarantee audience participation","Remove communication challenges"],1),
+ M("Which of the following is an essential characteristic of an unconference?",["Strict adherence to a formal structure","Heavy dependence on written proceedings","Flexible and less formal organization","Judicial decision-making authority"],2)]},
+{n:10,topic:"Leadership, listening and aids",qs:[
+ M("A leader is a forceful and ______ personality.",["dynamic","dubious","timid","tiresome"],0),
+ M("Audio-visual aids are also known as ______ material.",["passive","instructional","institutional","suggestive"],1),
+ M("Who among the following is not an author of The Essentials of Leadership in Government?",["Darryl Plecas","Colette Squires","Len Garis","Lincoln Myers"],3),
+ M("Which among these is not a basic type of listening?",["Active listening","Inactive listening","Divisive listening","Selective listening"],2),
+ M("Which quality of voice is understood as the pectoral?",["Low-pitched and slow","Round and full","The natural human voice","Explosive resonance in the throat"],0),
+ T("Innovative is one of the behavioural attributes of the BASICS model.",0),
+ T("According to Simon Ortis, “The only person who likes change is a baby with a wet diaper”.",1),
+ T("Blackboard is an example of an audio aid in public speaking.",1),
+ T("Arbitrary is a word or phrase that connects the ideas of a speech and indicates the relationship between them.",1),
+ T("Audience awareness is an essential component of pre-presentation preparation.",0)]}
+];
+WEEKS.forEach(w => w.qs.forEach(q => q.wk = w.n));
+const ALL = WEEKS.flatMap(w => w.qs);
+
+/* storage */
+const store = {
+  get(){ try { return JSON.parse(localStorage.getItem("psq-best")||"{}"); } catch(e){ return {}; } },
+  set(id,v){ try { const b=this.get(); if(!(id in b) || v>b[id]) b[id]=v; localStorage.setItem("psq-best",JSON.stringify(b)); } catch(e){} }
+};
+
+const app = document.getElementById("app");
+let S = null; // quiz state
+
+function el(tag, attrs={}, ...kids){
+  const e = document.createElement(tag);
+  for (const [k,v] of Object.entries(attrs)){
+    if (k==="class") e.className=v; else if (k.startsWith("on")) e.addEventListener(k.slice(2),v);
+    else if (v!==false && v!=null) e.setAttribute(k,v===true?"":v);
+  }
+  kids.flat().forEach(c => e.append(c instanceof Node ? c : document.createTextNode(c)));
+  return e;
+}
+function qText(q, filled){
+  const parts = q.q.split(/_{3,}/);
+  if (parts.length===1) return [q.q];
+  const out = [];
+  parts.forEach((p,i)=>{
+    out.push(p);
+    if (i<parts.length-1) out.push(filled ? el("span",{class:"blank filled"},filled) : el("span",{class:"blank","aria-label":"blank"},"      "));
+  });
+  return out;
+}
+const typeName = {mcq:"Multiple choice",tf:"True or false",fill:"Fill in the blank"};
+
+/* home */
+function home(){
+  S = null;
+  const best = store.get();
+  const done = WEEKS.filter(w => (w.n in best) || (("w"+w.n) in best)).length;
+  app.replaceChildren(
+    el("header",{class:"top"},
+      el("div",{class:"eyebrow"},"NPTEL · Public Speaking · July–October 2026"),
+      el("h1",{},"Public Speaking Quiz Bank"),
+      el("p",{},"All ten weekly assignments as quizzes. Pick a week, answer one question at a time and see the right answer straight away."),
+      wave(),
+      el("div",{class:"actions"},
+        el("button",{class:"btn primary",onclick:()=>go("all")},"Take all 100 questions"),
+        el("span",{class:"count"},done+" of 10 weeks attempted")),
+      el("p",{class:"note"},"True/false answers and Week 2 follow the answer key printed on your sheet. Questions that had no key are marked “Suggested answer” after you answer, so check those against your course material.")),
+    el("main",{class:"grid"}, WEEKS.map(w=>{
+      const b = best["w"+w.n];
+      return el("button",{class:"week",onclick:()=>go("w"+w.n)},
+        el("span",{class:"lbl"},"Week"),
+        el("span",{class:"n"},String(w.n).padStart(2,"0")),
+        el("span",{class:"topic"},w.topic),
+        el("span",{class:"meta"},el("span",{},w.qs.length+" questions"),
+          el("span",{class:"chip"+(b!=null?" done":"")}, b!=null ? "Best "+b+"/"+w.qs.length : "New")));
+    }))
+  );
+  window.scrollTo(0,0);
+}
+function wave(){
+  const w = el("div",{class:"wave","aria-hidden":"true"});
+  for (let i=0;i<64;i++){
+    const h = 10 + Math.abs(Math.sin(i*.45)*Math.cos(i*.13))*90;
+    w.append(el("i",{style:"height:"+h.toFixed(0)+"%"}));
+  }
+  return w;
+}
+
+/* quiz */
+function go(id){ if (location.hash==="#"+id) route(); else location.hash = id; }
+function start(id, qs, title){
+  S = {id, title, qs, i:0, picks:qs.map(()=>null), locked:false};
+  renderQ();
+}
+function bar(){
+  const picks = S.picks;
+  return el("div",{class:"bar"},
+    el("div",{class:"barrow"},
+      el("button",{class:"back",onclick:()=>{location.hash="";}},"← All weeks"),
+      el("span",{class:"count"},S.title+" · "+(S.i+1)+" / "+S.qs.length)),
+    el("div",{class:"segs"}, S.qs.map((q,i)=>{
+      const p = picks[i];
+      const cls = p==null ? (i===S.i?"cur":"") : (q.a.includes(p)?"ok":"no");
+      return el("i",{class:cls});
+    })));
+}
+function renderQ(){
+  const q = S.qs[S.i];
+  const L = q.t==="tf" ? ["T","F"] : ["A","B","C","D"];
+  const pick = S.picks[S.i];
+  const locked = pick!=null;
+  S.locked = locked;
+  const ok = locked && q.a.includes(pick);
+  const opts = el("div",{class:"opts"+(q.o.length===2?" two":""),role:"group","aria-label":"Answer options"},
+    q.o.map((o,i)=>{
+      let cls = "opt";
+      if (locked){ if (q.a.includes(i)) cls+=" right"; else if (i===pick) cls+=" wrong"; }
+      return el("button",{class:cls,disabled:locked,onclick:()=>choose(i)},
+        el("span",{class:"k"},L[i]), el("span",{},o));
+    }));
+  const filled = locked && q.t==="fill" ? q.o[q.a[0]] : null;
+  const children = [
+    el("div",{class:"qtype"}, el("span",{},typeName[q.t]), S.id==="all" ? el("span",{class:"wk"},"Week "+q.wk) : ""),
+    el("div",{class:"q",id:"qtext"}, qText(q, filled)),
+    opts
+  ];
+  if (locked){
+    const right = q.a.map(i=>q.o[i]).join(" or ");
+    children.push(el("div",{class:"fb "+(ok?"ok":"no"),role:"status"},
+      el("strong",{}, ok ? "Correct" : "Not quite. Correct answer: "+right),
+      el("small",{}, q.key ? "Matches the answer key on your sheet." : "Suggested answer. Your sheet did not include a key for this one, so double-check it.")));
+    children.push(el("div",{class:"foot"},
+      el("button",{class:"btn primary",id:"next",onclick:next}, S.i===S.qs.length-1 ? "See results" : "Next question")));
+  }
+  app.replaceChildren(bar(), el("div",{class:"card"},children));
+  if (locked){ const n=document.getElementById("next"); if(n) n.focus({preventScroll:true}); }
+  else window.scrollTo(0,0);
+}
+function choose(i){
+  if (S.picks[S.i]!=null) return;
+  S.picks[S.i]=i;
+  renderQ();
+  const fb = document.querySelector(".fb"); if (fb) fb.scrollIntoView({block:"nearest",behavior:"smooth"});
+}
+function next(){
+  if (S.i < S.qs.length-1){ S.i++; renderQ(); } else result();
+}
+
+/* result */
+function result(){
+  const total = S.qs.length;
+  const score = S.qs.reduce((n,q,i)=> n + (q.a.includes(S.picks[i])?1:0), 0);
+  store.set(S.id, score);
+  const pct = Math.round(score/total*100);
+  const msg = pct===100 ? "Perfect round." : pct>=80 ? "Strong result." : pct>=50 ? "Solid start. Review the misses below." : "Worth another pass through the misses below.";
+  const missed = S.qs.filter((q,i)=>!q.a.includes(S.picks[i]));
+  const wkNum = S.id.startsWith("w") ? parseInt(S.id.slice(1),10) : null;
+  const review = el("ol",{class:"review"}, S.qs.map((q,i)=>{
+    const p = S.picks[i], good = q.a.includes(p);
+    const txt = q.t==="fill" ? q.q.replace(/_{3,}/g,"____") : q.q;
+    return el("li",{},
+      el("span",{class:"mark "+(good?"ok":"no"),"aria-label":good?"Correct":"Wrong"}, good?"✓":"✕"),
+      el("div",{},
+        S.id==="all" ? el("span",{class:"wk"},"Week "+q.wk) : "",
+        el("p",{},txt),
+        el("div",{class:"a"}, good ? el("span",{},"Your answer: ",el("b",{},q.o[p])) :
+          el("span",{},"You chose ",el("b",{},q.o[p])," · correct: ",el("b",{},q.a.map(k=>q.o[k]).join(" or "))))));
+  }));
+  app.replaceChildren(
+    el("div",{class:"bar"}, el("div",{class:"barrow"},
+      el("button",{class:"back",onclick:()=>{location.hash="";}},"← All weeks"),
+      el("span",{class:"count"},S.title))),
+    el("div",{class:"card"},
+      el("div",{class:"score"},
+        el("div",{class:"big"},String(score),el("small",{}," / "+total)),
+        el("div",{},el("h2",{},pct+"%"),el("p",{style:"margin:6px 0 0;color:var(--muted)"},msg))),
+      el("div",{class:"actions"},
+        el("button",{class:"btn primary",onclick:()=>start(S.id,S.qs,S.title)},"Try again"),
+        el("button",{class:"btn",disabled:!missed.length,onclick:()=>start(S.id+"-missed",missed,S.title+" · missed")},"Retry missed ("+missed.length+")"),
+        wkNum && wkNum<10 ? el("button",{class:"btn",onclick:()=>go("w"+(wkNum+1))},"Week "+(wkNum+1)+" →") : ""),
+      el("h3",{style:"font-size:1.2rem"},"Review"),
+      review));
+  window.scrollTo(0,0);
+}
+
+/* routing */
+function route(){
+  const h = location.hash.replace("#","");
+  if (h==="all") return start("all",ALL.slice(),"All weeks");
+  const m = /^w(\d+)$/.exec(h);
+  if (m){ const w = WEEKS.find(x=>x.n===+m[1]); if (w) return start("w"+w.n,w.qs.slice(),"Week "+w.n); }
+  home();
+}
+window.addEventListener("hashchange",route);
+document.addEventListener("keydown",e=>{
+  if (!S || e.metaKey||e.ctrlKey||e.altKey) return;
+  const q = S.qs[S.i]; if(!q || S.picks[S.i]!=null || !document.getElementById("qtext")) return;
+  const k = e.key.toLowerCase();
+  let i = -1;
+  if (q.t==="tf") i = k==="t"||k==="1" ? 0 : k==="f"||k==="2" ? 1 : -1;
+  else i = "abcd".indexOf(k) >= 0 ? "abcd".indexOf(k) : ("1234".indexOf(k));
+  if (i>=0 && i<q.o.length) choose(i);
+});
+route();
+</script>
